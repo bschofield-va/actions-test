@@ -14,7 +14,7 @@ ARG DELAY=0
 RUN <<EOF
  date > build.txt
  echo $RANDOM >> build.txt
- for i in $(seq 1 ${DELAY:0}); do echo "wait for it"; done
+ for i in $(seq 1 ${DELAY:0}); do echo "wait for it"; sleep 1; done
 EOF
 
 FROM base AS app
