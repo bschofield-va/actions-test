@@ -22,7 +22,7 @@ on:
         type: string
         required: true
       compose-service-mount-cache-targets:
-        default: 'List of Docker compose services and RUN mount cache targets, one pair per line'
+        description: 'List of Docker compose services and RUN mount cache targets, one pair per line'
         type: string
         required: false
     secrets:
