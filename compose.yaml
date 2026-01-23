@@ -1,0 +1,32 @@
+x-catalyst-volumes: &catalyst-volumes
+  - "${PROJECT_DIR:-.}:/home/playerone/project"
+  - "${CATALYZER_M2_DIR:-$HOME/.m2}:/home/playerone/.m2"
+  - "${CATALYZER_SSH_CONFIG_DIR:-$HOME/.ssh}:/home/playerone/.ssh"
+  - "${CATALYZER_GIT_CONFIG_FILE:-$HOME/.gitconfig}:/home/playerone/.gitconfig"
+
+services:
+  app:
+    image: ghcr.io/bschofield-va/actions-test/app:latest
+    pull_policy: never
+    restart: no
+    init: true
+    build:
+      target: app
+      labels:
+        org.opencontainers.image.source: https://github.com/bschofield-va/actions-test/app
+
+
+
+  #
+  # dev image can be used to perform development tasks against this project
+  # For example:
+  # docker compose run --rm dev -c 'mvn clean install'
+  #
+  dev:
+    image: ghcr.io/bschofield-va/actions-test/app:latest
+    depends_on: [ app ]
+    pull_policy: never
+    command: -c 'sleep 0'
+    working_dir: /home/playerone/project
+    restart: no
+    volumes: *catalyst-volumes

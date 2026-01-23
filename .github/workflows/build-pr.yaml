@@ -1,0 +1,26 @@
+name: Build PR
+run-name: "PR #${{ github.event.pull_request.number || 'nope' }} build-non-release"
+
+permissions: write-all
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/build-with-compose.yaml
+    secrets:
+      compose-env: |
+        PROJECT_REPO_USERNAME=${{ secrets.PROJECT_REPO_USERNAME }}
+        PROJECT_REPO_PASSWORD=${{ secrets.PROJECT_REPO_PASSWORD }}
+        PROJECT_REPO_URL=${{ vars.PROJECT_REPO_URL }}
+      container-registry-username: ${{  github.actor }}
+      container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      container-registry-hostname: ghcr.io
+      timeout-minutes: 30
+      release: true
+      # release: ${{ github.ref == 'refs/heads/main' }}
