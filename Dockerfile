@@ -10,9 +10,11 @@ ENTRYPOINT [ "sh" ]
 FROM base AS builder
 ADD --chown=${PLAYERONE_ID}:${PLAYERONE_ID} . /home/playerone/project/
 WORKDIR /home/playerone/project
+ARG DELAY=0
 RUN <<EOF
  date > build.txt
  echo $RANDOM >> build.txt
+ for i in $(seq 1 ${DELAY:0}); do echo "wait for it"; done
 EOF
 
 FROM base AS app

@@ -17,6 +17,7 @@ jobs:
         PROJECT_REPO_USERNAME=${{ secrets.PROJECT_REPO_USERNAME }}
         PROJECT_REPO_PASSWORD=${{ secrets.PROJECT_REPO_PASSWORD }}
         PROJECT_REPO_URL=${{ vars.PROJECT_REPO_URL }}
+        DELAY=10
       container-registry-username: ${{  github.actor }}
       container-registry-password: ${{ secrets.GITHUB_TOKEN }}
     with:

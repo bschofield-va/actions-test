@@ -12,6 +12,8 @@ services:
     init: true
     build:
       target: app
+      args:
+        - "DELAY=${DELAY:-0}"
       labels:
         org.opencontainers.image.source: https://github.com/bschofield-va/actions-test/app
 
