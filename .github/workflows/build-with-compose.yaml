@@ -49,24 +49,59 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
-      - name: Authenticate as app
-        run: |
-          JWT=$(.github/workflows/app-jwt)
-          echo "$JWT" | cut -c1-20
-
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ secrets.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+      - run: |
+          echo "GITHUB_TOKEN=${{ steps.app-token.outputs.token }}" >> $GITHUB_ENV
+          echo "GH_TOKEN=${{ steps.app-token.outputs.token }}" >> $GITHUB_ENV
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+#      - name: Authenticate as app
+#        run: |
+#          JWT=$(.github/workflows/app-jwt)
+#          echo ${{ github.api_url }}
+#          INSTALLATION_ID=$(curl -sf ${{ github.api_url }}/repos/${{ github.repository }}/installation \
+#            -H "Accept: application/vnd.github+json" \
+#            -H "X-GitHub-Api-Version: 2022-11-28" \
+#            -H "Authorization: Bearer $JWT" \
+#            | jq -r '.id')
+#          echo "Installation: $INSTALLATION_ID"
+#          curl -sf -X POST ${{ github.api_url }}/app/installations/$INSTALLATION_ID/access_tokens \
+#            -H "Accept: application/vnd.github+json" \
+#            -H "X-GitHub-Api-Version: 2022-11-28" \
+#            -H "Authorization: Bearer $JWT" \
+#            -o token.json
+#          jq '.expires_at' token.json
+#          jq '.permissions' token.json
+#        env:
+#          APP_CLIENT_ID: ${{ secrets.app-client-id }}
+#          APP_PRIVATE_KEY: ${{ secrets.app-private-key }}
+#      - name: Get GitHub App User ID
+#        id: get-user-id
+#        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+#        env:
+#          GH_TOKEN: ${{ steps.app-token.outputs.token }}
       - name: Configure git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      #      - name: Push test
-      #        run: |
-      #          date > .last-build-run
-      #          git add .last-build-run
-      #          git commit -m "Automated commit from GitHub Action"
-      #          git push
+          set -x
+          APP_USER_ID="$(gh api '/users/${{ steps.app-token.outputs.app-slug }}[bot]' --jq .id)"
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email "${APP_USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+#      - name: Configure git
+#        run: |
+#          git config user.name "github-actions"
+#          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Push test
+        run: |
+          date > .last-build-run
+          git add .last-build-run
+          git commit -m "action $(date)"
+          git push
       - uses: docker/setup-buildx-action@v3
       - uses: actions/cache@v4
         with:

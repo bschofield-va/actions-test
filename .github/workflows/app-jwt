@@ -4,7 +4,8 @@ set -euo pipefail
 : ${APP_CLIENT_ID}
 : ${APP_PRIVATE_KEY}
 
-if [ -f ${APP_PRIVATE_KEY} ]; then APP_PRIVATE_KEY=$(cat $APP_PRIVATE_KEY); fi
+# APP_PRIVATE_KEY may be a PEM file or the PEM content itself
+if [ -f "${APP_PRIVATE_KEY}" ]; then APP_PRIVATE_KEY=$(cat "$APP_PRIVATE_KEY"); fi
 
 b64() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
 

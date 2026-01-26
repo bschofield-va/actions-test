@@ -1,10 +1,10 @@
 fileignoreconfig:
 - filename: .github/workflows/app-jwt
-  checksum: 2441d790ae096c0ecb269961b58a72c591b8ebd265238080609cd05f3cd8df50
+  checksum: 8edb56dbf5ab8537185c6815c8ccf14e8066bd0139881e37473aa5621ba1ee4b
 - filename: .github/workflows/build-pr.yaml
   checksum: b2684442c0e532dc3f38a9b4616aaae87e2d08cef15147413670d3c1e5a56688
 - filename: .github/workflows/build-with-compose.yaml
-  checksum: 69d0fa3780b99236163607a1b7a81ac8f26710bced58671f01fee21c2353d770
+  checksum: 2e16c85e534a95a0e345c872512252e16cb9068db2c5d2df595e5c8f5dd4e13c
 - filename: .github/workflows/run-mount-cache
   checksum: fb712464fbffdbfa0bf1b5ca3d9974c614b580c69305a706f6bfc4e1f1193786
 version: "1.0"
