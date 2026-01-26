@@ -1,0 +1,50 @@
+name: Create Release
+
+permissions: write-all
+on:
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    name: Create Release
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Configure git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+      - name: Create branch
+        run: |
+          set -e -x
+          git checkout -b release
+          git push
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/pulls \
+            -f "title=Release $(date --iso-8601=seconds)" \
+            -f "base=main" \
+            -f 'head=${{ github.head_ref }}' \
+            > pr.json
+          PR_NUMBER=$(jq -r .number pr.json)
+          while [ true ]
+          do
+            gh pr view 2 --json statusCheckRollup > status.json
+            NOT_COMPLETED=$(jq -r '.statusCheckRollup|[.[]| select(.status != "COMPLETED")]|length' status.json)
+            if [ $NOT_COMPLETED == 0 ]; then break; fi
+            echo "Incomplete status checks: $NOT_COMPLETED"
+            sleep 30s
+          done
+          jq -r '.statusCheckRollup[]|[.status,.conclusion,.workflowName + ":",.name]|join(" ")' status.json
+          UNSUCCESSFUL=$(jq -r '.statusCheckRollup|[.[]| select(.conclusion != "SUCCESS")]|length' status.json)
+          if [ $UNSUCCESSFUL == 0 ]; then exit 0; fi
+          echo "Unsuccessful status checks: $UNSUCCESSFUL"
+          echo "Aborting release"
+          exit 1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
