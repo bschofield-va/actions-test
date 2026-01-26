@@ -1,6 +1,6 @@
 name: Build PR
-run-name: ${{ github.event_name == 'pull_request' && format('PR #{0} Build', github.event.pull_request.number) || format('Branch {0} Build', github.ref_name) }}
-
+#run-name: "PR #${{ github.event.pull_request.number || 'nope' }} build-non-release"
+run-name: "${{ github.event_name == 'pull_request' && format('PR #{0} Build', github.event.pull_request.number) || format('Branch {0} Build', github.ref_name) }}"
 
 permissions: write-all
 on:
