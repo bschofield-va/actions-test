@@ -20,6 +20,8 @@ jobs:
         DELAY=10
       container-registry-username: ${{  github.actor }}
       container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+      app-client-id: ${{ secrets.APP_CLIENT_ID }}
+      app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
     with:
       container-registry-hostname: ghcr.io
       timeout-minutes: 30

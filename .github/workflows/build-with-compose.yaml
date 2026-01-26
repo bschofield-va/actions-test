@@ -35,6 +35,12 @@ on:
       container-registry-password:
         description: 'The container registry password when pushing images'
         required: true
+      app-client-id:
+        description: 'Application client ID'
+        required: true
+      app-private-key:
+        description: 'Application private key'
+        required: true
 
 jobs:
   build-with-compose:
@@ -43,6 +49,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - name: Authenticate as app
+        run: |
+          JWT=$(.github/workflows/app-jwt)
+          echo "$JWT" | cut -c1-20
+
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
