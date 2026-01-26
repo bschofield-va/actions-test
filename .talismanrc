@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: .github/workflows/app-jwt
-  checksum: 2441d790ae096c0ecb269961b58a72c591b8ebd265238080609cd05f3cd8df50
+  checksum: 8edb56dbf5ab8537185c6815c8ccf14e8066bd0139881e37473aa5621ba1ee4b
 - filename: .github/workflows/build-pr.yaml
   checksum: b2684442c0e532dc3f38a9b4616aaae87e2d08cef15147413670d3c1e5a56688
 - filename: .github/workflows/build-with-compose.yaml
