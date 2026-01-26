@@ -58,7 +58,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
+          #persist-credentials: false
 #      - name: Authenticate as app
 #        run: |
 #          JWT=$(.github/workflows/app-jwt)
