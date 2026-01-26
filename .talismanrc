@@ -4,7 +4,7 @@ fileignoreconfig:
 - filename: .github/workflows/build-pr.yaml
   checksum: b2684442c0e532dc3f38a9b4616aaae87e2d08cef15147413670d3c1e5a56688
 - filename: .github/workflows/build-with-compose.yaml
-  checksum: 69d0fa3780b99236163607a1b7a81ac8f26710bced58671f01fee21c2353d770
+  checksum: 85ff33ffa35d7857dd6d5dff45bb94ae700271943dcee4734500a6cbdcac9716
 - filename: .github/workflows/run-mount-cache
   checksum: fb712464fbffdbfa0bf1b5ca3d9974c614b580c69305a706f6bfc4e1f1193786
 version: "1.0"
