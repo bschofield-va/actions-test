@@ -49,14 +49,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
       - name: Authenticate as app
         run: |
           JWT=$(.github/workflows/app-jwt)
           echo "$JWT" | cut -c1-20
-
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
       - name: Configure git
         run: |
           git config user.name "github-actions"
