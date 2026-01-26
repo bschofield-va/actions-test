@@ -56,16 +56,16 @@ jobs:
         run: |
           JWT=$(.github/workflows/app-jwt)
           echo ${{ github.api_url }}
-          INSTALLATION_ID=$(curl -f ${{ github.api_url }}/repos/${{ github.repository }}/installation \
+          INSTALLATION_ID=$(curl -sf ${{ github.api_url }}/repos/${{ github.repository }}/installation \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             -H "Authorization: Bearer $JWT" \
             | jq -r '.id')
-          echo "$INSTALLATION_ID"
-          curl -f -X POST ${{ github.api_url }}/app/installations/$INSTALLATION_ID/access_tokens \
+          echo "Installation: $INSTALLATION_ID"
+          curl -sf -X POST ${{ github.api_url }}/app/installations/$INSTALLATION_ID/access_tokens \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "Authorization: Bearer JWT" \
+            -H "Authorization: Bearer $JWT" \
             -o token.json
           jq '.expires_at' token.json
           jq '.permissions' token.json
