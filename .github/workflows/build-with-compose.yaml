@@ -52,6 +52,7 @@ jobs:
       - run: |
           whoami
           id -a
+          echo $PATH
       - uses: actions/create-github-app-token@v2
         id: app-token
         with:
