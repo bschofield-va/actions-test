@@ -17,7 +17,7 @@ concurrency:
 jobs:
   release:
     name: Release Build and Tag
-    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/prep-') }}
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-prep-') }}
     runs-on: ubuntu-latest
     env:
       MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}

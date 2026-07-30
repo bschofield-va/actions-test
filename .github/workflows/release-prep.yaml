@@ -17,7 +17,7 @@ concurrency:
 jobs:
   prepare-release-pr:
     name: Prepare Release PR
-    if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release/prep-') }}
+    if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release-prep-') }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           SHORT_SHA="$(echo "${BASE_SHA}" | cut -c1-12)"
-          BRANCH="release/prep-${SHORT_SHA}"
+          BRANCH="release-prep-${SHORT_SHA}"
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
           git checkout -B "${BRANCH}"
