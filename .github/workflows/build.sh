@@ -15,9 +15,9 @@ log() { echo "$@" >&2; }
 #============================================================
 
 initialize() {
-  docker compose version
-  initializeComposeFile
-  initializeServices
+#  docker compose version
+#  initializeComposeFile
+#  initializeServices
 }
 
 initializeComposeFile() {
@@ -36,13 +36,16 @@ initializeServices() {
 
 build() {
   log "Building images"
-  docker compose build
+  # docker compose build
+  for i in $(seq 1 ${DELAY:10}); do echo "wait for it"; sleep 1; done
+
 }
 
 release() {
-  docker images
-  log "Pushing images ..."
-  docker compose push -q $REVERB_SERVICES
+  #docker images
+  #log "Pushing images ..."
+  #docker compose push -q $REVERB_SERVICES
+  log "Pretend releasing ..."
 }
 
 #============================================================
