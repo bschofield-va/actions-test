@@ -1,0 +1,73 @@
+name: Release Prep
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+concurrency:
+  group: release-prep-main
+  cancel-in-progress: false
+
+jobs:
+  prepare-release-pr:
+    name: Prepare Release PR
+    if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release/prep-') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      BASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      BASE_BRANCH: main
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release prep commit
+        id: prep
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(echo "${BASE_SHA}" | cut -c1-12)"
+          BRANCH="release/prep-${SHORT_SHA}"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+          git checkout -B "${BRANCH}"
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .last-build-run
+          git add .last-build-run
+          git commit -m "chore(release): update .last-build-run for ${SHORT_SHA}"
+          git push --force-with-lease origin "${BRANCH}"
+
+      - name: Open or reuse release PR
+        id: pr
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.prep.outputs.branch }}"
+          PR_NUMBER="$(gh pr list --head "${BRANCH}" --base "${BASE_BRANCH}" --state open --json number --jq '.[0].number // empty')"
+
+          if [ -n "${PR_NUMBER}" ]; then
+            echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PR_NUMBER="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls" \
+            -f "title=Release prep ${BRANCH}" \
+            -f "head=${BRANCH}" \
+            -f "base=${BASE_BRANCH}" \
+            -f "body=Automated release prep PR for ${BASE_SHA}." \
+            --jq '.number')"
+
+          echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge
+        run: |
+          gh pr merge "${{ steps.pr.outputs.number }}" --auto --merge --delete-branch
