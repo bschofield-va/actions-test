@@ -1,0 +1,50 @@
+name: Buildarooski
+
+permissions: write-all
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-with-compose:
+    name: Build with Compose
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - run: |
+          whoami
+          id -a
+          echo $PATH
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          set -x
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push test
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          date > .last-build-run
+          git add .last-build-run
+          git commit -m "action $(date)"
+          git push
+
+      - name: Build
+        run: .github/workflows/build.sh build
+
+      - name: Release
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: .github/workflows/build.sh release
+
+
