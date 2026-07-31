@@ -1,8 +1,8 @@
 name: Release Build and Tag
 
-permissions:
-  contents: write
-  packages: write
+permissions: write-all
+#  contents: write
+#  packages: write
 
 on:
   pull_request:
