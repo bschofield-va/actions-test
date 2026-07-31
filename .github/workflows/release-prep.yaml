@@ -41,7 +41,11 @@ jobs:
           TAG="release-${TIMESTAMP}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-          date -u +"%Y-%m-%dT%H:%M:%SZ" > .last-build-run
+          {
+            echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "workflow=${GITHUB_WORKFLOW}"
+            echo "run_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } | tee .last-build-run
           git add .last-build-run
           git commit -m "chore(release): prepare ${TAG}"
 
