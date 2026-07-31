@@ -15,9 +15,10 @@ log() { echo "$@" >&2; }
 #============================================================
 
 initialize() {
-#  docker compose version
-#  initializeComposeFile
-#  initializeServices
+  #  docker compose version
+  #  initializeComposeFile
+  #  initializeServices
+  echo do nothing
 }
 
 initializeComposeFile() {
