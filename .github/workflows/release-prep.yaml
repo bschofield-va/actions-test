@@ -1,8 +1,8 @@
 name: Release Prep
 
-permissions: write-all
-#  contents: write
-#  pull-requests: write
+permissions:
+  contents: write
+  actions: read
 
 on:
   pull_request:
@@ -15,13 +15,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  prepare-release-pr:
-    name: Prepare Release PR
-    if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release-prep-') }}
+  release-prep:
+    name: Release Prep
+    if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release-') }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
       BASE_BRANCH: main
     steps:
       - uses: actions/checkout@v6
@@ -33,41 +32,92 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create release prep commit
-        id: prep
+      - name: Create release commit and tag
+        id: release
         run: |
           set -euo pipefail
-          SHORT_SHA="$(echo "${BASE_SHA}" | cut -c1-12)"
-          BRANCH="release-prep-${SHORT_SHA}"
+          TIMESTAMP="$(date -u +%Y%m%d%H%M)"
+          BRANCH="release-${TIMESTAMP}"
+          TAG="${BRANCH}"
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
           git checkout -B "${BRANCH}"
           date -u +"%Y-%m-%dT%H:%M:%SZ" > .last-build-run
           git add .last-build-run
-          git commit -m "chore(release): update .last-build-run for ${SHORT_SHA}"
-          git push --force-with-lease origin "${BRANCH}"
+          git commit -m "chore(release): prepare ${BRANCH}"
 
-      - name: Open or reuse release PR
-        id: pr
-        run: |
-          set -euo pipefail
-          BRANCH="${{ steps.prep.outputs.branch }}"
-          PR_NUMBER="$(gh pr list --head "${BRANCH}" --base "${BASE_BRANCH}" --state open --json number --jq '.[0].number // empty')"
-
-          if [ -n "${PR_NUMBER}" ]; then
-            echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
-            exit 0
+          if git rev-parse "${TAG}" >/dev/null 2>&1 || gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Release tag already exists: ${TAG}" >&2
+            exit 1
           fi
 
-          PR_NUMBER="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls" \
-            -f "title=Release prep ${BRANCH}" \
-            -f "head=${BRANCH}" \
-            -f "base=${BASE_BRANCH}" \
-            -f "body=Automated release prep PR for ${BASE_SHA}." \
-            --jq '.number')"
+          git tag "${TAG}"
+          git push --force-with-lease origin "${BRANCH}"
+          git push origin "${TAG}"
 
-          echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
-
-      - name: Enable auto-merge
+      - name: Dispatch build workflow
         run: |
-          gh pr merge "${{ steps.pr.outputs.number }}" --auto --merge --delete-branch
+          gh workflow run build.yaml --ref "${{ steps.release.outputs.branch }}"
+
+      - name: Dispatch CodeQL workflow
+        run: |
+          gh workflow run codeql.yaml --ref "${{ steps.release.outputs.branch }}"
+
+      - name: Wait for build and CodeQL
+        env:
+          BRANCH: ${{ steps.release.outputs.branch }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          BUILD_RUN_ID="$(gh run list --workflow build.yaml --branch "${BRANCH}" --event workflow_dispatch --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId')"
+          CODEQL_RUN_ID="$(gh run list --workflow codeql.yaml --branch "${BRANCH}" --event workflow_dispatch --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId')"
+
+          if [ -z "${BUILD_RUN_ID}" ] || [ "${BUILD_RUN_ID}" = "null" ]; then
+            echo "Unable to find dispatched build.yaml run for ${BRANCH}" >&2
+            exit 1
+          fi
+          if [ -z "${CODEQL_RUN_ID}" ] || [ "${CODEQL_RUN_ID}" = "null" ]; then
+            echo "Unable to find dispatched codeql.yaml run for ${BRANCH}" >&2
+            exit 1
+          fi
+
+          wait_for_run() {
+            local run_id="$1"
+            local name="$2"
+            local status=""
+            local conclusion=""
+            local attempts=0
+            local max_attempts=120
+            while true; do
+              status="$(gh run view "${run_id}" --json status --jq '.status')"
+              if [ "${status}" = "completed" ]; then
+                conclusion="$(gh run view "${run_id}" --json conclusion --jq '.conclusion')"
+                if [ "${conclusion}" != "success" ]; then
+                  echo "${name} run ${run_id} completed with conclusion=${conclusion}" >&2
+                  return 1
+                fi
+                echo "${name} run ${run_id} succeeded"
+                return 0
+              fi
+              attempts=$((attempts+1))
+              if [ "${attempts}" -ge "${max_attempts}" ]; then
+                echo "Timed out waiting for ${name} run ${run_id}" >&2
+                return 1
+              fi
+              sleep 10
+            done
+          }
+
+          wait_for_run "${BUILD_RUN_ID}" "Build"
+          wait_for_run "${CODEQL_RUN_ID}" "CodeQL"
+
+      - name: Merge release commit to main
+        env:
+          BRANCH: ${{ steps.release.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git fetch origin "${BASE_BRANCH}" "${BRANCH}"
+          git checkout -B "${BASE_BRANCH}" "origin/${BASE_BRANCH}"
+          git merge --no-ff --no-edit "origin/${BRANCH}"
+          git push origin "${BASE_BRANCH}"
