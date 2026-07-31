@@ -37,8 +37,9 @@ jobs:
         run: |
           set -euo pipefail
           TIMESTAMP="$(date -u +%Y%m%d%H%M)"
-          BRANCH="release-${TIMESTAMP}"
-          TAG="${BRANCH}"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          BRANCH="release-${SHORT_SHA}"
+          TAG="release-${TIMESTAMP}"
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
