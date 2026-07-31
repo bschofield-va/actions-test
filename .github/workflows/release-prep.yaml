@@ -2,7 +2,7 @@ name: Release Prep
 
 permissions:
   contents: write
-  actions: read
+  security-events: write
 
 on:
   pull_request:
@@ -57,61 +57,16 @@ jobs:
           git push --force-with-lease origin "${BRANCH}"
           git push origin "${TAG}"
 
-      - name: Dispatch build workflow
-        run: |
-          gh workflow run build.yaml --ref "${{ steps.release.outputs.branch }}"
+      - name: Build
+        run: .github/workflows/build.sh build
 
-      - name: Dispatch CodeQL workflow
-        run: |
-          gh workflow run codeql.yaml --ref "${{ steps.release.outputs.branch }}"
+      - name: CodeQL init
+        uses: github/codeql-action/init@v3
+        with:
+          languages: actions
 
-      - name: Wait for build and CodeQL
-        env:
-          BRANCH: ${{ steps.release.outputs.branch }}
-        run: |
-          set -euo pipefail
-          sleep 8
-          BUILD_RUN_ID="$(gh run list --workflow build.yaml --branch "${BRANCH}" --event workflow_dispatch --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId')"
-          CODEQL_RUN_ID="$(gh run list --workflow codeql.yaml --branch "${BRANCH}" --event workflow_dispatch --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId')"
-
-          if [ -z "${BUILD_RUN_ID}" ] || [ "${BUILD_RUN_ID}" = "null" ]; then
-            echo "Unable to find dispatched build.yaml run for ${BRANCH}" >&2
-            exit 1
-          fi
-          if [ -z "${CODEQL_RUN_ID}" ] || [ "${CODEQL_RUN_ID}" = "null" ]; then
-            echo "Unable to find dispatched codeql.yaml run for ${BRANCH}" >&2
-            exit 1
-          fi
-
-          wait_for_run() {
-            local run_id="$1"
-            local name="$2"
-            local status=""
-            local conclusion=""
-            local attempts=0
-            local max_attempts=120
-            while true; do
-              status="$(gh run view "${run_id}" --json status --jq '.status')"
-              if [ "${status}" = "completed" ]; then
-                conclusion="$(gh run view "${run_id}" --json conclusion --jq '.conclusion')"
-                if [ "${conclusion}" != "success" ]; then
-                  echo "${name} run ${run_id} completed with conclusion=${conclusion}" >&2
-                  return 1
-                fi
-                echo "${name} run ${run_id} succeeded"
-                return 0
-              fi
-              attempts=$((attempts+1))
-              if [ "${attempts}" -ge "${max_attempts}" ]; then
-                echo "Timed out waiting for ${name} run ${run_id}" >&2
-                return 1
-              fi
-              sleep 10
-            done
-          }
-
-          wait_for_run "${BUILD_RUN_ID}" "Build"
-          wait_for_run "${CODEQL_RUN_ID}" "CodeQL"
+      - name: CodeQL analyze
+        uses: github/codeql-action/analyze@v3
 
       - name: Merge release commit to main
         env:
