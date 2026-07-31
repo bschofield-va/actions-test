@@ -32,16 +32,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Prepare release commit and tag
+      - name: Create release branch, commit and tag
         id: release
         run: |
           set -euo pipefail
           TIMESTAMP="$(date -u +%Y%m%d%H%M)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          BRANCH="release-${SHORT_SHA}"
           TAG="release-${TIMESTAMP}"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
+          git checkout -B "${BRANCH}"
           date -u +"%Y-%m-%dT%H:%M:%SZ" > .last-build-run
-
           git add .last-build-run
           git commit -m "chore(release): prepare ${TAG}"
 
@@ -51,21 +54,26 @@ jobs:
           fi
 
           git tag "${TAG}"
+          git push --force-with-lease origin "${BRANCH}"
+          git push origin "${TAG}"
+
+      - name: Build
+        run: .github/workflows/build.sh build
 
       - name: CodeQL init
         uses: github/codeql-action/init@v4
         with:
           languages: actions
 
-      - name: Build
-        run: .github/workflows/build.sh build
-
-
       - name: CodeQL analyze
         uses: github/codeql-action/analyze@v4
 
-      - name: Push release commit and tag to main
+      - name: Merge release branch to main
+        env:
+          BRANCH: ${{ steps.release.outputs.branch }}
         run: |
           set -euo pipefail
-          git push origin HEAD:main
-          git push origin "${{ steps.release.outputs.tag }}"
+          git fetch origin "${BASE_BRANCH}"
+          git checkout -B "${BASE_BRANCH}" "origin/${BASE_BRANCH}"
+          git merge --no-ff --no-edit "origin/${BRANCH}"
+          git push origin "${BASE_BRANCH}"
