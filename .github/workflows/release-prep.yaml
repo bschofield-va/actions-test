@@ -19,6 +19,9 @@ jobs:
     name: Release Prep
     if: ${{ github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'release-') }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [ "actions" ]
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       BASE_BRANCH: main
@@ -60,13 +63,14 @@ jobs:
       - name: Build
         run: .github/workflows/build.sh build
 
-      - name: CodeQL init
-        uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@v4
         with:
-          languages: actions
+          languages: ${{ matrix.language }}
 
       - name: CodeQL analyze
         uses: github/codeql-action/analyze@v4
+        with:
+          category: sca
 
       - name: Merge release branch to main
         env:
